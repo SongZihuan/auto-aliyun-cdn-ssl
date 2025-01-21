@@ -43,7 +43,7 @@ func (d *DomainConfig) Check() ConfigError {
 	for _, domain := range d.Domains {
 		if domain.Domain == "" {
 			return NewConfigError("domain is empty")
-		} else if utils.IsValidDomain(domain.Domain) {
+		} else if !utils.IsValidDomain(domain.Domain) && !utils.IsValidWildcardDomain(domain.Domain) {
 			return NewConfigError("domain is not valid")
 		}
 	}

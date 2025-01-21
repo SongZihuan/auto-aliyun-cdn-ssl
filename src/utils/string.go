@@ -119,6 +119,14 @@ func IsValidDomain(domain string) bool {
 	return matched
 }
 
+func IsValidWildcardDomain(domain string) bool {
+	if !strings.HasPrefix(domain, "*.") {
+		return false
+	}
+
+	return IsValidDomain(domain[2:])
+}
+
 func StringToOnlyPrint(str string) string {
 	runeLst := []rune(str)
 	res := make([]rune, 0, len(runeLst))
