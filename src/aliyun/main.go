@@ -6,6 +6,7 @@ import (
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/config"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/logger"
 	"os"
+	"strings"
 )
 
 var international = false
@@ -32,7 +33,7 @@ func Init() (err error) {
 	return nil
 }
 
-func UpdateCDNHttpsByFilePath(domain string, cert string, prikey string) error {
+func UpdateCDNHttpsByFilePath(domainList []string, cert string, prikey string) error {
 	certData, err := os.ReadFile(cert)
 	if err != nil {
 		return fmt.Errorf("read cert file error: %s\n", err.Error())
@@ -43,21 +44,20 @@ func UpdateCDNHttpsByFilePath(domain string, cert string, prikey string) error {
 		return fmt.Errorf("read private key error: %s\n", err.Error())
 	}
 
-	return UpdateCDNHttps(domain, certData, privateKeyData)
+	return UpdateCDNHttps(domainList, certData, privateKeyData)
 }
 
-func UpdateCDNHttps(domain string, certData []byte, privateKeyData []byte) error {
-	certID, certName, err := uploadCert(casClient, certData, privateKeyData)
+func UpdateCDNHttps(domainList []string, certData []byte, privateKeyData []byte) error {
+	certID, certName, err := uploadCert(certData, privateKeyData)
 	if err != nil && errors.Is(err, ErrCertExists) {
-		logger.Warn("证书已存在, 不在重新更新CDN")
+		logger.Warnf("证书已存在, 不在重新更新CDN（%s）", strings.Join(domainList, ", "))
 		return nil
 	} else if err != nil {
-		return fmt.Errorf("upload error: %s\n", err.Error())
+		return fmt.Errorf("aliyun cloud ssl cert/key upload error: %s\n", err.Error())
 	}
 
-	err = setDomainServerCertificate(cdnClient, domain, certID, certName)
-	if err != nil {
-		return err
+	for _, domain := range domainList {
+		setDomainServerCertificateNotError(domain, certID, certName)
 	}
 
 	return nil

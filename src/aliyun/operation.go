@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func uploadCert(client *cas.Client, certData []byte, keyData []byte) (certID int64, name string, err error) {
+func uploadCert(certData []byte, keyData []byte) (certID int64, name string, err error) {
 	cert, err := utils.ReadCertificate(certData)
 	if err != nil {
 		panic(err)
@@ -35,7 +35,7 @@ func uploadCert(client *cas.Client, certData []byte, keyData []byte) (certID int
 			}
 		}()
 
-		return client.UploadUserCertificateWithOptions(uploadUserCertificateRequest, &util.RuntimeOptions{})
+		return casClient.UploadUserCertificateWithOptions(uploadUserCertificateRequest, &util.RuntimeOptions{})
 	}()
 	if tryErr != nil {
 		var sdkErr *tea.SDKError
@@ -49,7 +49,7 @@ func uploadCert(client *cas.Client, certData []byte, keyData []byte) (certID int
 	return tea.Int64Value(resp.Body.CertId), fingerprint, nil
 }
 
-func setDomainServerCertificate(client *cdn.Client, domainName string, certID int64, certName string) (err error) {
+func setDomainServerCertificate(domainName string, certID int64, certName string) (err error) {
 	request := &cdn.SetCdnDomainSSLCertificateRequest{}
 	request.DomainName = tea.String(strings.TrimPrefix(domainName, "*")) // 泛域名去除星号
 	request.CertName = tea.String(certName)
@@ -69,11 +69,28 @@ func setDomainServerCertificate(client *cdn.Client, domainName string, certID in
 			}
 		}()
 
-		return client.SetCdnDomainSSLCertificate(request)
+		return cdnClient.SetCdnDomainSSLCertificate(request)
 	}()
 	if tryErr != nil {
 		return tryErr
 	}
 	logger.Infof("CDN加速域名（%s）证书（%s）更新成功, 并启用SSL", domainName, certName)
 	return nil
+}
+
+func setDomainServerCertificateNotError(domainName string, certID int64, certName string) {
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
+			} else {
+				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
+			}
+		}
+	}()
+
+	err := setDomainServerCertificate(domainName, certID, certName)
+	if err != nil {
+		logger.Infof("CDN加速域名（%s）证书（%s）更新失败：%s", domainName, certName, err.Error())
+	}
 }

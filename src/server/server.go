@@ -4,28 +4,29 @@ import (
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/aliyun"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/config"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/logger"
+	"strings"
 )
 
 func Server() error {
-	cfg := config.GetConfig().DomainConfig
+	cfg := config.GetConfig().DomainListsGroup
 
 	logger.Info("Server start...")
-	for _, domain := range cfg.Domains {
+	for index, collection := range cfg.Collection {
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
 					if err, ok := r.(error); ok {
-						logger.Panicf("aliyun update CDN HTTOS by domain (%s) panic: %s", domain, err.Error())
+						logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %s", strings.Join(collection.Domain, ", "), index, err.Error())
 					} else {
-						logger.Panicf("aliyun update CDN HTTOS by domain (%s) panic: %v", domain, r)
+						logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %v", strings.Join(collection.Domain, ", "), index, r)
 					}
 				}
 			}()
 
-			certPath, prikeyPath := domain.GetFilePath()
-			err := aliyun.UpdateCDNHttpsByFilePath(domain.Domain, certPath, prikeyPath)
+			certPath, prikeyPath := collection.GetFilePath()
+			err := aliyun.UpdateCDNHttpsByFilePath(collection.Domain, certPath, prikeyPath)
 			if err != nil {
-				logger.Errorf("aliyun update CDN HTTOS by domain (%s) error: %s", domain, err.Error())
+				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %s", strings.Join(collection.Domain, ", "), index, err.Error())
 			}
 		}()
 	}

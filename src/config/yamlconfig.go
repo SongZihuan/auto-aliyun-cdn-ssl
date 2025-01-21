@@ -6,8 +6,8 @@ import (
 )
 
 type YamlConfig struct {
-	GlobalConfig `yaml:",inline"`
-	DomainConfig `yaml:",inline"`
+	GlobalConfig     `yaml:",inline"`
+	DomainListsGroup `yaml:",inline"`
 
 	Aliyun AliyunConfig `yaml:"aliyun"`
 }
@@ -18,7 +18,7 @@ func (y *YamlConfig) Init() error {
 
 func (y *YamlConfig) SetDefault(configPath string) {
 	y.GlobalConfig.SetDefault()
-	y.DomainConfig.SetDefault(configPath)
+	y.DomainListsGroup.SetDefault(configPath)
 	y.Aliyun.SetDefault()
 }
 
@@ -28,7 +28,7 @@ func (y *YamlConfig) Check() (err ConfigError) {
 		return err
 	}
 
-	err = y.DomainConfig.Check()
+	err = y.DomainListsGroup.Check()
 	if err != nil && err.IsError() {
 		return err
 	}

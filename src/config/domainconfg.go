@@ -1,25 +1,26 @@
 package config
 
 import (
+	"fmt"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/baota"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/utils"
 	"path"
+	"path/filepath"
 )
 
-type Domain struct {
-	Domain  string `yaml:"domain"`
-	RootDir string `yaml:"-"`
-	Dir     string `yaml:"dir"`
-	Cert    string `yaml:"cert"`
-	Key     string `yaml:"pri"`
+type DomainListCollection struct {
+	Domain []string `yaml:"domain"`
+	Dir    string   `yaml:"dir"`
+	Cert   string   `yaml:"cert"`
+	Key    string   `yaml:"pri"`
 }
 
-type DomainConfig struct {
-	RootDir string   `yaml:"rootrir"`
-	Domains []Domain `yaml:"domains"`
+type DomainListsGroup struct {
+	RootDir    string                 `yaml:"rootrir"`
+	Collection []DomainListCollection `yaml:"collection"`
 }
 
-func (d *DomainConfig) SetDefault(configPath string) {
+func (d *DomainListsGroup) SetDefault(configPath string) {
 	if d.RootDir == "" {
 		if baota.HasBaoTaLetsEncrypt() {
 			d.RootDir = baota.GetBaoTaLetsEncryptDir()
@@ -27,41 +28,50 @@ func (d *DomainConfig) SetDefault(configPath string) {
 			d.RootDir = path.Dir(configPath)
 		}
 	}
-
-	for _, domain := range d.Domains {
-		domain.RootDir = d.RootDir
-	}
-
 	return
 }
 
-func (d *DomainConfig) Check() ConfigError {
+func (d *DomainListsGroup) Check() ConfigError {
 	if !utils.IsDir(d.RootDir) {
 		return NewConfigError("root dir is not a dir")
 	}
 
-	for _, domain := range d.Domains {
-		if domain.Domain == "" {
-			return NewConfigError("domain is empty")
-		} else if !utils.IsValidDomain(domain.Domain) && !utils.IsValidWildcardDomain(domain.Domain) {
-			return NewConfigError("domain is not valid")
+	for _, domainLst := range d.Collection {
+		if len(domainLst.Domain) == 0 {
+			return NewConfigError("domain list is empty")
+		}
+
+		for _, domain := range domainLst.Domain {
+			if domain == "" {
+				return NewConfigError("domain is empty")
+			} else if !utils.IsValidDomain(domain) && !utils.IsValidWildcardDomain(domain) {
+				return NewConfigError("domain is not valid")
+			}
 		}
 	}
 
 	return nil
 }
 
-func (d *Domain) GetFilePath() (certPath string, prikeyPath string) {
-	rootDir := d.RootDir
+func (d *DomainListCollection) GetFilePath() (certPath string, prikeyPath string) {
+	if !IsReady() {
+		panic("config is not ready")
+	}
+
+	rootDir := GetConfig().RootDir
+
+	if baota.IsLinuxBaoTa() && rootDir != baota.GetBaoTaLetsEncryptDir() {
+		fmt.Printf("提示：运行在宝塔环境，但非Let's Encrypt目录")
+	}
 
 	if d.Dir != "" {
-		if path.IsAbs(d.Dir) {
+		if filepath.IsAbs(d.Dir) {
 			rootDir = d.Dir
 		} else {
 			rootDir = path.Join(rootDir, d.Dir)
 		}
 	} else {
-		rootDir = path.Join(rootDir, d.Domain)
+		rootDir = path.Join(rootDir, d.Domain[0])
 	}
 
 	if rootDir == "" {
