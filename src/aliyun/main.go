@@ -50,23 +50,39 @@ func UpdateCDNHttpsByFilePath(domainList []string, cert string, prikey string) e
 
 func UpdateCDNHttps(domainList []string, certData []byte, privateKeyData []byte) error {
 	certID, certName, subject, err := uploadCert(certData, privateKeyData)
-	if err != nil && errors.Is(err, ErrCertExists) {
-		logger.Warnf("证书已存在, 不在重新更新CDN（%s）", strings.Join(domainList, ", "))
+	if err != nil && errors.Is(err, ErrCertExists) && certName != "" {
+		logger.Warnf("证书已存在, 尝试检测CDN证书记录并更新（%s）", strings.Join(domainList, ", "))
+
+		for _, domain := range domainList {
+			cert, need, err := database.CheckNeedUpdateDomain(certName, domain)
+			if err != nil {
+				logger.Errorf("check aliyun cloud cdn domain ssl status from sqlite error: %s", err.Error())
+			} else if need && cert != nil {
+				setDomainServerCertificateNotError(domain, cert.CertID, cert.Name)
+				err = database.UpdateDomain(cert.CertID, cert.Name, cert.Subject, domain)
+				if err != nil {
+					logger.Error("aliyun cloud ssl domain save to sqlite error: %s", err.Error())
+				}
+			} else {
+				// 无需更新
+			}
+		}
+
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("aliyun cloud ssl cert/key upload error: %s", err.Error())
-	}
-
-	err = database.UpdateCert(certID, certName, subject)
-	if err != nil {
-		logger.Errorf("aliyun cloud ssl cert/key save to sqlite error: %s", err.Error())
-	}
-
-	for _, domain := range domainList {
-		setDomainServerCertificateNotError(domain, certID, certName)
-		err = database.UpdateDomain(certID, certName, subject, domain)
+	} else {
+		err = database.UpdateCert(certID, certName, subject)
 		if err != nil {
-			logger.Error("aliyun cloud ssl domain save to sqlite error: %s", err.Error())
+			logger.Errorf("aliyun cloud ssl cert/key save to sqlite error: %s", err.Error())
+		}
+
+		for _, domain := range domainList {
+			setDomainServerCertificateNotError(domain, certID, certName)
+			err = database.UpdateDomain(certID, certName, subject, domain)
+			if err != nil {
+				logger.Error("aliyun cloud ssl domain save to sqlite error: %s", err.Error())
+			}
 		}
 	}
 

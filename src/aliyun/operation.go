@@ -83,13 +83,13 @@ func setDomainServerCertificate(domainName string, certID int64, certName string
 
 func setDomainServerCertificateNotError(domainName string, certID int64, certName string) {
 	defer func() {
-		//if r := recover(); r != nil {
-		//	if err, ok := r.(error); ok {
-		//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
-		//	} else {
-		//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
-		//	}
-		//}
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
+			} else {
+				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
+			}
+		}
 	}()
 
 	err := setDomainServerCertificate(domainName, certID, certName)
