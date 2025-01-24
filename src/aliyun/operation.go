@@ -43,12 +43,12 @@ func uploadCert(certData []byte, keyData []byte) (certID int64, name string, sub
 	if tryErr != nil {
 		var sdkErr *tea.SDKError
 		if errors.As(tryErr, &sdkErr) && tea.StringValue(sdkErr.Code) == "NameRepeat" {
-			logger.Warnf("证书已经存在, 证书名字：%s", fingerprint)
+			logger.Infof("证书已经存在, 证书名字：%s", fingerprint)
 			return 0, fingerprint, subject, ErrCertExists
 		}
 		return 0, fingerprint, subject, tryErr
 	}
-	logger.Infof("上传成功, 证书名字：%s, 证书ID：%d, 请求ID：%s", fingerprint, tea.Int64Value(resp.Body.CertId), tea.StringValue(resp.Body.RequestId))
+	logger.Infof("上传成功, 证书Subject: %s, 证书名字：%s, 证书ID：%d, 请求ID：%s", subject, fingerprint, tea.Int64Value(resp.Body.CertId), tea.StringValue(resp.Body.RequestId))
 	return tea.Int64Value(resp.Body.CertId), fingerprint, subject, nil
 }
 
@@ -77,6 +77,7 @@ func setDomainServerCertificate(domainName string, certID int64, certName string
 	if tryErr != nil {
 		return tryErr
 	}
+
 	logger.Infof("CDN加速域名（%s）证书（%s）更新成功, 并启用SSL", domainName, certName)
 	return nil
 }
@@ -85,15 +86,15 @@ func setDomainServerCertificateNotError(domainName string, certID int64, certNam
 	defer func() {
 		if r := recover(); r != nil {
 			if err, ok := r.(error); ok {
-				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
+				logger.Panicf("更新 域名 (%s) 证书时发生了 不可预期的验证错误 被recover捕获，类型为error，错误消息是：%s", domainName, err.Error())
 			} else {
-				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
+				logger.Panicf("更新 域名 (%s) 证书时发生了 不可预期的验证错误 被recover捕获，错误消息是：%v", domainName, r)
 			}
 		}
 	}()
 
 	err := setDomainServerCertificate(domainName, certID, certName)
 	if err != nil {
-		logger.Infof("CDN加速域名（%s）证书（%s）更新失败：%s", domainName, certName, err.Error())
+		logger.Infof("CDN加速 域名 (%s) 证书（%s）更新失败：%s", domainName, certName, err.Error())
 	}
 }
