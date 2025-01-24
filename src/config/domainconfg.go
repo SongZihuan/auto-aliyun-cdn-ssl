@@ -16,8 +16,10 @@ type DomainListCollection struct {
 }
 
 type DomainListsGroup struct {
-	RootDir    string                 `yaml:"rootrir"`
-	Collection []DomainListCollection `yaml:"collection"`
+	SQLFilePath    string                 `yaml:"sqlfilepath"`
+	ActiveShutdown utils.StringBool       `yaml:"activeshutdown"`
+	RootDir        string                 `yaml:"rootrir"`
+	Collection     []DomainListCollection `yaml:"collection"`
 }
 
 func (d *DomainListsGroup) SetDefault(configPath string) {
@@ -28,6 +30,17 @@ func (d *DomainListsGroup) SetDefault(configPath string) {
 			d.RootDir = path.Dir(configPath)
 		}
 	}
+
+	d.ActiveShutdown.SetDefaultDisable()
+
+	if d.SQLFilePath == "" {
+		if baota.HasBaoTaLetsEncrypt() {
+			d.SQLFilePath = path.Join(configPath, "auto-aliyun-cdn-ssl.db")
+		} else {
+			d.SQLFilePath = "./auto-aliyun-cdn-ssl.db"
+		}
+	}
+
 	return
 }
 

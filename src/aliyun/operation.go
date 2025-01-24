@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/logger"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/utils"
 	cas "github.com/alibabacloud-go/cas-20200407/v3/client"
@@ -13,11 +14,13 @@ import (
 	"strings"
 )
 
-func uploadCert(certData []byte, keyData []byte) (certID int64, name string, err error) {
+func uploadCert(certData []byte, keyData []byte) (certID int64, name string, subject string, err error) {
 	cert, err := utils.ReadCertificate(certData)
 	if err != nil {
-		panic(err)
+		return 0, "", "", fmt.Errorf("read cert error: %s", err.Error())
 	}
+
+	subject = utils.GetCertDomainSubject(cert)
 
 	hash := sha256.Sum224(cert.RawSubjectPublicKeyInfo) // Sum256 太长
 	fingerprint := hex.EncodeToString(hash[:])
@@ -41,12 +44,12 @@ func uploadCert(certData []byte, keyData []byte) (certID int64, name string, err
 		var sdkErr *tea.SDKError
 		if errors.As(tryErr, &sdkErr) && tea.StringValue(sdkErr.Code) == "NameRepeat" {
 			logger.Warnf("证书已经存在, 证书名字：%s", fingerprint)
-			return 0, fingerprint, ErrCertExists
+			return 0, fingerprint, subject, ErrCertExists
 		}
-		return 0, fingerprint, tryErr
+		return 0, fingerprint, subject, tryErr
 	}
 	logger.Infof("上传成功, 证书名字：%s, 证书ID：%d, 请求ID：%s", fingerprint, tea.Int64Value(resp.Body.CertId), tea.StringValue(resp.Body.RequestId))
-	return tea.Int64Value(resp.Body.CertId), fingerprint, nil
+	return tea.Int64Value(resp.Body.CertId), fingerprint, subject, nil
 }
 
 func setDomainServerCertificate(domainName string, certID int64, certName string) (err error) {
@@ -80,13 +83,13 @@ func setDomainServerCertificate(domainName string, certID int64, certName string
 
 func setDomainServerCertificateNotError(domainName string, certID int64, certName string) {
 	defer func() {
-		if r := recover(); r != nil {
-			if err, ok := r.(error); ok {
-				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
-			} else {
-				logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
-			}
-		}
+		//if r := recover(); r != nil {
+		//	if err, ok := r.(error); ok {
+		//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %s", domainName, err.Error())
+		//	} else {
+		//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s) panic: %v", domainName, r)
+		//	}
+		//}
 	}()
 
 	err := setDomainServerCertificate(domainName, certID, certName)

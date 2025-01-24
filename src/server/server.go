@@ -14,13 +14,13 @@ func Server() error {
 	for index, collection := range cfg.Collection {
 		func() {
 			defer func() {
-				if r := recover(); r != nil {
-					if err, ok := r.(error); ok {
-						logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %s", strings.Join(collection.Domain, ", "), index, err.Error())
-					} else {
-						logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %v", strings.Join(collection.Domain, ", "), index, r)
-					}
-				}
+				//if r := recover(); r != nil {
+				//	if err, ok := r.(error); ok {
+				//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %s", strings.Join(collection.Domain, ", "), index, err.Error())
+				//	} else {
+				//		logger.Panicf("aliyun update CDN HTTPS by domains/collection (%s / %d) panic: %v", strings.Join(collection.Domain, ", "), index, r)
+				//	}
+				//}
 			}()
 
 			certPath, prikeyPath := collection.GetFilePath()

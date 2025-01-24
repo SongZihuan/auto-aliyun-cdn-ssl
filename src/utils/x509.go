@@ -52,3 +52,15 @@ func CheckCertWithTime(cert *x509.Certificate, gracePeriod time.Duration) bool {
 
 	return true
 }
+
+func GetCertDomainSubject(cert *x509.Certificate) string {
+	if cert.Subject.CommonName != "" {
+		return cert.Subject.CommonName // 通用名匹配
+	}
+
+	if len(cert.DNSNames) > 0 {
+		return cert.DNSNames[0]
+	}
+
+	return ""
+}

@@ -1,9 +1,10 @@
-package mainfunc
+package auto_aliyun_cdn_ssl_cli
 
 import (
 	"errors"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/aliyun"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/config"
+	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/database"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/flagparser"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/logger"
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/server"
@@ -50,6 +51,12 @@ func MainV1() int {
 
 	logger.Executablef("%s", "ready")
 	logger.Infof("run mode: %s", config.GetConfig().GlobalConfig.GetRunMode())
+
+	err = database.InitSQLite()
+	if err != nil {
+		return utils.ExitByError(err)
+	}
+	defer database.CloseSQLite()
 
 	err = aliyun.Init()
 	if err != nil {
