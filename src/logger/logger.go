@@ -96,7 +96,7 @@ func (l *Logger) Executablef(format string, args ...interface{}) string {
 	if str == "" {
 		_, _ = fmt.Fprintf(l.warnWriter, "[Executable]: %s\n", l.args0)
 	} else {
-		_, _ = fmt.Fprintf(l.warnWriter, "{Executable %s]: %s\n", l.args0, str)
+		_, _ = fmt.Fprintf(l.warnWriter, "[Executable %s]: %s\n", l.args0, str)
 	}
 	return l.args0
 }
