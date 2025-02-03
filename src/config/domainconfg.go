@@ -6,23 +6,56 @@ import (
 	"github.com/SongZihuan/auto-aliyun-cdn-ssl/src/utils"
 	"path"
 	"path/filepath"
+	"strings"
 )
 
+const (
+	DomainTypeCDN  = "cdn"
+	DomainTypeDCDN = "dcdn"
+)
+
+type Domain struct {
+	Domain string `yaml:"domain"`
+	Type   string `yaml:"type"`
+}
+
 type DomainListCollection struct {
-	Domain []string `yaml:"domain"`
-	Dir    string   `yaml:"dir"`
-	Cert   string   `yaml:"cert"`
-	Key    string   `yaml:"pri"`
+	Domain []*Domain `yaml:"domain"`
+	Dir    string    `yaml:"dir"`
+	Cert   string    `yaml:"cert"`
+	Key    string    `yaml:"pri"`
 }
 
 type DomainListsGroup struct {
-	SQLFilePath    string                 `yaml:"sqlfilepath"`
-	ActiveShutdown utils.StringBool       `yaml:"activeshutdown"`
-	RootDir        string                 `yaml:"rootrir"`
-	Collection     []DomainListCollection `yaml:"collection"`
+	SQLFilePath    string                  `yaml:"sqlfilepath"`
+	ActiveShutdown utils.StringBool        `yaml:"activeshutdown"`
+	RootDir        string                  `yaml:"rootrir"`
+	Collection     []*DomainListCollection `yaml:"collection"`
+}
+
+func (c *DomainListCollection) Domain2Str() string {
+	var builder strings.Builder
+	var seq = ", "
+
+	for _, domain := range c.Domain {
+		builder.WriteString(fmt.Sprintf("%s（%s）%s", domain.Domain, domain.Type, seq))
+	}
+
+	res := strings.TrimRight(builder.String(), seq)
+	return res
 }
 
 func (d *DomainListsGroup) SetDefault(configPath string) {
+	if d.SQLFilePath == "" {
+		if baota.HasBaoTaLetsEncrypt() {
+			d.SQLFilePath = path.Join(configPath, "auto-aliyun-cdn-ssl.db")
+		} else {
+			d.SQLFilePath = "./auto-aliyun-cdn-ssl.db"
+		}
+	}
+
+	d.ActiveShutdown.SetDefaultDisable()
+
 	if d.RootDir == "" {
 		if baota.HasBaoTaLetsEncrypt() {
 			d.RootDir = baota.GetBaoTaLetsEncryptDir()
@@ -31,13 +64,13 @@ func (d *DomainListsGroup) SetDefault(configPath string) {
 		}
 	}
 
-	d.ActiveShutdown.SetDefaultDisable()
-
-	if d.SQLFilePath == "" {
-		if baota.HasBaoTaLetsEncrypt() {
-			d.SQLFilePath = path.Join(configPath, "auto-aliyun-cdn-ssl.db")
-		} else {
-			d.SQLFilePath = "./auto-aliyun-cdn-ssl.db"
+	for _, c := range d.Collection {
+		for _, domain := range c.Domain {
+			domain.Domain = strings.TrimSpace(strings.ToLower(domain.Domain))
+			domain.Type = strings.TrimSpace(strings.ToLower(domain.Type))
+			if domain.Type == "" {
+				domain.Type = DomainTypeCDN
+			}
 		}
 	}
 
@@ -55,10 +88,14 @@ func (d *DomainListsGroup) Check() ConfigError {
 		}
 
 		for _, domain := range domainLst.Domain {
-			if domain == "" {
+			if domain.Domain == "" {
 				return NewConfigError("domain is empty")
-			} else if !utils.IsValidDomain(domain) && !utils.IsValidWildcardDomain(domain) {
+			} else if !utils.IsValidDomain(domain.Domain) && !utils.IsValidWildcardDomain(domain.Domain) {
 				return NewConfigError("domain is not valid")
+			}
+
+			if domain.Type != DomainTypeCDN && domain.Type != DomainTypeDCDN {
+				return NewConfigError("domain type is not valid")
 			}
 		}
 	}
@@ -84,7 +121,7 @@ func (d *DomainListCollection) GetFilePath() (certPath string, prikeyPath string
 			rootDir = path.Join(rootDir, d.Dir)
 		}
 	} else {
-		rootDir = path.Join(rootDir, d.Domain[0])
+		rootDir = path.Join(rootDir, d.Domain[0].Domain)
 	}
 
 	if rootDir == "" {

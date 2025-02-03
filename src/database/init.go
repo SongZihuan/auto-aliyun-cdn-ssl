@@ -21,7 +21,7 @@ func InitSQLite() error {
 		return fmt.Errorf("connect to sqlite (%s) failed: %s", sqlfilepath, err)
 	}
 
-	err = _db.AutoMigrate(&CertRecord{}, &DomainRecord{})
+	err = _db.AutoMigrate(&CertRecord{}, &CDNDomainRecord{}, &DCDNDomainRecord{})
 	if err != nil {
 		return fmt.Errorf("migrate sqlite (%s) failed: %s", sqlfilepath, err)
 	}

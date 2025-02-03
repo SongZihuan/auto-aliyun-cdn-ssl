@@ -24,7 +24,7 @@ func (*CertRecord) TableName() string {
 	return "cert_record"
 }
 
-type DomainRecord struct {
+type CDNDomainRecord struct {
 	Model
 	CertRecordID uint      `gorm:"column:cert_record_id;not null;"`
 	CertID       int64     `gorm:"column:cert_id;not null"`
@@ -34,6 +34,20 @@ type DomainRecord struct {
 	CertUpdateAt time.Time `gorm:"column:cert_update_time;not null"`
 }
 
-func (*DomainRecord) TableName() string {
-	return "domain_record"
+func (*CDNDomainRecord) TableName() string {
+	return "cdn_domain_record"
+}
+
+type DCDNDomainRecord struct {
+	Model
+	CertRecordID uint      `gorm:"column:cert_record_id;not null;"`
+	CertID       int64     `gorm:"column:cert_id;not null"`
+	Name         string    `gorm:"column:name;type:VARCHAR(100);not null"`
+	Subject      string    `gorm:"column:subject;type:VARCHAR(100);not null;"`
+	Domain       string    `gorm:"type:VARCHAR(100);not null;"` // 允许多次重复记录
+	CertUpdateAt time.Time `gorm:"column:cert_update_time;not null"`
+}
+
+func (*DCDNDomainRecord) TableName() string {
+	return "dcdn_domain_record"
 }
