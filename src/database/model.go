@@ -8,8 +8,8 @@ import (
 // Model gorm.Model的仿写，明确了键名
 type Model struct {
 	ID        uint           `gorm:"column:id;primarykey"`
-	CreatedAt time.Time      `gorm:"column:created_at;autoCreateTime;primarykey"`
-	UpdatedAt time.Time      `gorm:"column:updated_at;autoUpdateTime;primarykey"`
+	CreatedAt time.Time      `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt time.Time      `gorm:"column:updated_at;autoUpdateTime"`
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at;index"`
 }
 
