@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-func uploadCert(certData []byte, keyData []byte) (certID int64, name string, subject string, err error) {
+func uploadCert(certData []byte, keyData []byte, resourceID string) (certID int64, name string, subject string, err error) {
 	cert, err := utils.ReadCertificate(certData)
 	if err != nil {
 		return 0, "", "", fmt.Errorf("read cert error: %s", err.Error())
@@ -30,6 +30,10 @@ func uploadCert(certData []byte, keyData []byte) (certID int64, name string, sub
 		Name: tea.String(fingerprint),
 		Cert: tea.String(string(certData)),
 		Key:  tea.String(string(keyData)),
+	}
+
+	if resourceID != "" {
+		uploadUserCertificateRequest.SetResourceGroupId(resourceID)
 	}
 
 	resp, tryErr := func() (resp *cas.UploadUserCertificateResponse, err error) {

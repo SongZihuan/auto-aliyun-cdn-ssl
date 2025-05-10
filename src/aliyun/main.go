@@ -44,7 +44,7 @@ func UpdateDomainHttpsByFilePath(collection *config.DomainListCollection, cert s
 }
 
 func UpdateDomainHttps(collection *config.DomainListCollection, certData []byte, privateKeyData []byte) error {
-	certID, certName, subject, err := uploadCert(certData, privateKeyData)
+	certID, certName, subject, err := uploadCert(certData, privateKeyData, config.GetConfig().Aliyun.ResourceID)
 	if err != nil && errors.Is(err, ErrCertExists) && certName != "" {
 		logger.Infof("证书已存在, 尝试检测 CDN域名 (%s) 证书记录并更新", collection.Domain2Str())
 

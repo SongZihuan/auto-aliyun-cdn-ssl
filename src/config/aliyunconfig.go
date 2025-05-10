@@ -15,6 +15,7 @@ type AliyunConfig struct {
 	Key           string           `yaml:"key"`
 	Secret        string           `yaml:"secret"`
 	International utils.StringBool `yaml:"international"`
+	ResourceID    string           `yaml:"resource-id"`
 }
 
 func (a *AliyunConfig) SetDefault() {
